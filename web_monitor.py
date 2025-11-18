@@ -68,11 +68,17 @@ def index():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    # 고정 도메인 명시만 하고, 실제 ngrok 실행은 외부에서 수동으로
-    public_url = "https://trusting-kite-sound.ngrok-free.app"
-    logger.info(f"🔗 ngrok 고정 도메인: {public_url}")
+    import os
+    # 포트는 환경 변수에서 가져오거나 기본값 8080 사용
+    port = int(os.environ.get('PORT', 8080))
+    host = os.environ.get('HOST', '0.0.0.0')
+    
+    # ngrok 도메인 (로컬/EC2에서만 사용)
+    public_url = os.environ.get('PUBLIC_URL', "https://trusting-kite-sound.ngrok-free.app")
+    if public_url:
+        logger.info(f"🔗 Public URL: {public_url}")
 
     monitor_thread = threading.Thread(target=monitor_balances, daemon=True)
     monitor_thread.start()
 
-    socketio.run(app, debug=False, host='0.0.0.0', port=8080, allow_unsafe_werkzeug=True)
+    socketio.run(app, debug=False, host=host, port=port, allow_unsafe_werkzeug=True)

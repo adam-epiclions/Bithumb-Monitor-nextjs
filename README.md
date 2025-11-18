@@ -33,9 +33,11 @@ ssh -i ~/경로/adam.pem ubuntu@<서버 퍼블릭 IP>
 
 #### Git 사용 시
 ```bash
-git clone <repository-url>
-cd Bithumb-Balance-Monitor-master
+git clone git@github-bithumb:adam-epiclions/Bithumb-Monitor-nextjs.git
+cd Bithumb-Monitor-nextjs
 ```
+
+> **참고**: 서버에서도 SSH 키 설정이 필요합니다. 자세한 내용은 [DEPLOY.md](./DEPLOY.md)를 참고하세요.
 
 #### 로컬 파일 업로드 (SCP)
 ```bash
