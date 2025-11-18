@@ -1,11 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/index.py",
-      "use": "@vercel/python"
-    }
-  ],
   "routes": [
     {
       "src": "/static/(.*)",
@@ -13,17 +7,8 @@
     },
     {
       "src": "/(.*)",
-      "dest": "api/index.py"
+      "dest": "/public/index.html"
     }
-  ],
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 60,
-      "memory": 1024
-    }
-  },
-  "env": {
-    "VERCEL": "1"
-  }
+  ]
 }
 
