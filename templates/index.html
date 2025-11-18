@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>빗썸 잔고 모니터</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>빗썸 잔고 모니터</h1>
+            <div class="last-update">마지막 업데이트: <span id="last-update-time">-</span></div>
+        </div>
+        <div id="accounts">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                잔고 조회 중...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const accountsDiv = document.getElementById('accounts');
+        const lastUpdateTime = document.getElementById('last-update-time');
+        const warningThreshold = 50000; // 5만원
+        let isFirstLoad = true;
+
+        // 계정 이름 매핑
+        const accountNames = {
+            'bithumb_1': '정*호',
+            'bithumb_2': '김*현',
+            'bithumb_3': '이*우',
+            'bithumb_4': '김*민',
+            'bithumb_5': '박*원',
+            'bithumb_6': '장*민',
+            'bithumb_7': '김*수',
+            'bithumb_8': '박*영',
+            'bithumb_9': '이*근',
+            'bithumb_10': '이*석',
+            'bithumb_11': '김*옥',
+            'bithumb_12': '임*희',
+            'bithumb_13': '이*도'
+        };
+
+        function formatNumber(number) {
+            return new Intl.NumberFormat('ko-KR').format(Math.round(number));
+        }
+
+        function updateLastUpdateTime() {
+            const now = new Date();
+            lastUpdateTime.textContent = now.toLocaleTimeString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+        }
+
+        function createAccountCard(accountName, data) {
+            const card = document.createElement('div');
+            card.className = 'account-card';
+            card.id = `account-${accountName}`;
+
+            const changeClass = data.change === 0 ? 'neutral' : (data.change > 0 ? 'positive' : 'negative');
+            const totalChangeClass = data.total_change === 0 ? 'neutral' : (data.total_change > 0 ? 'positive' : 'negative');
+
+            card.innerHTML = `
+                <div class="account-header">
+                    <div class="account-name">${accountNames[accountName] || accountName}</div>
+                </div>
+                <div class="balance-info">
+                    <div class="current-balance">
+                        ${formatNumber(data.current_balance)}원
+                    </div>
+                    <div class="total-change ${totalChangeClass}">
+                        ${data.total_change > 0 ? '+' : ''}${formatNumber(data.total_change)}원
+                    </div>
+                    <div class="realtime-change ${changeClass}">
+                        ${data.change > 0 ? '+' : ''}${formatNumber(data.change)}원
+                    </div>
+                </div>
+            `;
+
+            // 경고 메시지 추가
+            if (Math.abs(data.change) >= warningThreshold) {
+                const warning = document.createElement('div');
+                warning.className = 'warning';
+                warning.textContent = `⚠️ 경고: ${formatNumber(Math.abs(data.change))}원 ${data.change < 0 ? '손실' : '이익'} 발생!`;
+                card.appendChild(warning);
+            }
+
+            return card;
+        }
+
+        function updateAccountCard(accountName, data) {
+            let card = document.getElementById(`account-${accountName}`);
+            if (!card) {
+                card = createAccountCard(accountName, data);
+                accountsDiv.appendChild(card);
+            } else {
+                const changeClass = data.change === 0 ? 'neutral' : (data.change > 0 ? 'positive' : 'negative');
+                const totalChangeClass = data.total_change === 0 ? 'neutral' : (data.total_change > 0 ? 'positive' : 'negative');
+
+                card.innerHTML = `
+                    <div class="account-header">
+                        <div class="account-name">${accountNames[accountName] || accountName}</div>
+                    </div>
+                    <div class="balance-info">
+                        <div class="current-balance">
+                            ${formatNumber(data.current_balance)}원
+                        </div>
+                        <div class="total-change ${totalChangeClass}">
+                            ${data.total_change > 0 ? '+' : ''}${formatNumber(data.total_change)}원
+                        </div>
+                        <div class="realtime-change ${changeClass}">
+                            ${data.change > 0 ? '+' : ''}${formatNumber(data.change)}원
+                        </div>
+                    </div>
+                `;
+
+                // 경고 메시지 추가
+                if (Math.abs(data.change) >= warningThreshold) {
+                    const warning = document.createElement('div');
+                    warning.className = 'warning';
+                    warning.textContent = `⚠️ 경고: ${formatNumber(Math.abs(data.change))}원 ${data.change < 0 ? '손실' : '이익'} 발생!`;
+                    card.appendChild(warning);
+                }
+            }
+        }
+
+        socket.on('balance_update', function(data) {
+            // 첫 데이터 수신 시 로딩 메시지 제거
+            if (isFirstLoad) {
+                const loadingElement = document.querySelector('.loading');
+                if (loadingElement) {
+                    loadingElement.remove();
+                }
+                isFirstLoad = false;
+            }
+
+            for (const [accountName, accountData] of Object.entries(data)) {
+                let card = document.getElementById(`account-${accountName}`);
+                const isNew = !card;
+
+                updateAccountCard(accountName, accountData);
+
+                card = document.getElementById(`account-${accountName}`);
+
+            // 실시간 변화 강조
+                if (Math.abs(accountData.change) >= 1) {
+                    card.classList.add('updated');
+                    setTimeout(() => {
+                        card.classList.remove('updated');
+                    }, 600);
+                }
+
+                // 잔고가 0이면 흐릿하게 표시
+                if (accountData.current_balance === 0) {
+                    card.classList.add('zero-balance');
+                } else {
+                    card.classList.remove('zero-balance');
+                }
+            }
+
+            // 마지막 업데이트 시간 갱신
+            updateLastUpdateTime();
+        });
+    </script>
+</body>
+</html> 

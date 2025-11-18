@@ -1,0 +1,40 @@
+# 환경 변수 파일
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# 로그 파일
+*.log
+web.log
+balance.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node modules (혹시 있을 경우)
+node_modules/
+npm-debug.log*
+
+# 기타
+*.pem
+*.key
+
